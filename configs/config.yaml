@@ -1,0 +1,22 @@
+server:
+  addr: ":8080"
+  mode: "release"
+log:
+  level: "info"
+  encoding: "json"
+  output: ["stdout"]
+db:
+  driver: "mysql"
+  dsn: "user:pass@tcp(127.0.0.1:3306)/go_erp?charset=utf8mb4&parseTime=True&loc=Local"
+  max_idle_conns: 10
+  max_open_conns: 50
+  conn_max_lifetime_seconds: 3600
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 0
+  enabled: false
+jwt:
+  secret: "change_me"
+  access_ttl_minutes: 30
+  refresh_ttl_minutes: 10080
