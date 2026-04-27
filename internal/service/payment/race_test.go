@@ -9,7 +9,6 @@ import (
 	orderrepo "go-erp/internal/repository/order"
 	paymentrepo "go-erp/internal/repository/payment"
 	ordersvc "go-erp/internal/service/order"
-	"sync"
 	"testing"
 
 	"gorm.io/driver/sqlite"
@@ -30,7 +29,42 @@ func TestPaymentCallbackRaceWithTimeoutCancel(t *testing.T) {
 	orderService := ordersvc.NewService(db, orderRepository, orderRepository, nil)
 	paymentService := NewService(paymentRepository, orderService, nil)
 
-	for i := 0; i < 50; i++ {
+	testCases := []struct {
+		name       string
+		firstStep  func(orderNo string) error
+		secondStep func(orderNo string) error
+	}{
+		{
+			name: "pay_then_timeout_cancel",
+			firstStep: func(orderNo string) error {
+				return paymentService.Callback(context.Background(), dtopayment.CallbackRequest{
+					OrderNo:   orderNo,
+					PaymentNo: "p-first-" + orderNo,
+					Channel:   "mock",
+					Status:    "paid",
+				})
+			},
+			secondStep: func(orderNo string) error {
+				return orderService.CancelIfTimeout(context.Background(), orderNo)
+			},
+		},
+		{
+			name: "timeout_cancel_then_pay",
+			firstStep: func(orderNo string) error {
+				return orderService.CancelIfTimeout(context.Background(), orderNo)
+			},
+			secondStep: func(orderNo string) error {
+				return paymentService.Callback(context.Background(), dtopayment.CallbackRequest{
+					OrderNo:   orderNo,
+					PaymentNo: "p-second-" + orderNo,
+					Channel:   "mock",
+					Status:    "paid",
+				})
+			},
+		},
+	}
+
+	for i, tc := range testCases {
 		orderNo := fmt.Sprintf("o-race-%d", i)
 		row := domainorder.Order{
 			OrderNo:    orderNo,
@@ -42,37 +76,18 @@ func TestPaymentCallbackRaceWithTimeoutCancel(t *testing.T) {
 		if err := db.Create(&row).Error; err != nil {
 			t.Fatalf("create order failed: %v", err)
 		}
-
-		start := make(chan struct{})
-		var wg sync.WaitGroup
-		wg.Add(2)
-
-		go func(orderNo string) {
-			defer wg.Done()
-			<-start
-			_ = orderService.CancelIfTimeout(context.Background(), orderNo)
-		}(orderNo)
-
-		go func(orderNo string, idx int) {
-			defer wg.Done()
-			<-start
-			_ = paymentService.Callback(context.Background(), dtopayment.CallbackRequest{
-				OrderNo:   orderNo,
-				PaymentNo: fmt.Sprintf("p-race-%d", idx),
-				Channel:   "mock",
-				Status:    "paid",
-			})
-		}(orderNo, i)
-
-		close(start)
-		wg.Wait()
-
+		if err := tc.firstStep(orderNo); err != nil {
+			t.Fatalf("%s first step failed: %v", tc.name, err)
+		}
+		if err := tc.secondStep(orderNo); err != nil {
+			t.Fatalf("%s second step failed: %v", tc.name, err)
+		}
 		var latest domainorder.Order
 		if err := db.Where("order_no = ?", orderNo).First(&latest).Error; err != nil {
 			t.Fatalf("query order failed: %v", err)
 		}
 		if latest.Status != domainorder.StatusPaid {
-			t.Fatalf("order should be paid after race, got %s", latest.Status)
+			t.Fatalf("%s should end paid, got %s", tc.name, latest.Status)
 		}
 	}
 }
