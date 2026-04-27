@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"go-erp/pkg/ctxmeta"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,8 @@ func Logger(log *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		traceID := uuid.NewString()
-		c.Set("trace_id", traceID)
+		c.Set(string(ctxmeta.KeyTraceID), traceID)
+		c.Request = c.Request.WithContext(ctxmeta.WithTraceID(c.Request.Context(), traceID))
 
 		c.Next()
 

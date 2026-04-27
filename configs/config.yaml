@@ -20,3 +20,11 @@ jwt:
   secret: "change_me"
   access_ttl_minutes: 30
   refresh_ttl_minutes: 10080
+mq:
+  enabled: false
+  url: "amqp://guest:guest@127.0.0.1:5672/"
+  exchange: "erp.events"
+  routing_key: "erp.default"
+  order_timeout_minutes: 30
+  outbox_max_retry: 6
+  outbox_base_delay_seconds: 3

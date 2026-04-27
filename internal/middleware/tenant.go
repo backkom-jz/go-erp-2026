@@ -1,10 +1,26 @@
 package middleware
 
-import "github.com/gin-gonic/gin"
+import (
+	"go-erp/pkg/ctxmeta"
+	"go-erp/pkg/errs"
+	"go-erp/pkg/httpx"
+
+	"github.com/gin-gonic/gin"
+)
 
 func Tenant() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: extract tenant_id from context/JWT and set for DB scope
+		path := c.Request.URL.Path
+		if path == "/api/v1/auth/login" {
+			c.Next()
+			return
+		}
+		tenantID, ok := c.Get(string(ctxmeta.KeyTenant))
+		if !ok || tenantID == "" {
+			httpx.Fail(c, errs.New(errs.CodeUnauthorized, "tenant_required"))
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }

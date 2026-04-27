@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go-erp/internal/bootstrap"
+	"go-erp/pkg/mq"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm/logger"
@@ -48,7 +49,29 @@ func main() {
 		defer func() { _ = redisClient.Close() }()
 	}
 
-	r := bootstrap.InitRouter(cfg.Server, zapLogger)
+	mqClient, err := bootstrap.InitMQ(cfg.MQ)
+	if err != nil {
+		zapLogger.Fatal("init mq failed", zap.Error(err))
+	}
+	if mqClient != nil {
+		defer func() { _ = mqClient.Channel.Close() }()
+		defer func() { _ = mqClient.Connection.Close() }()
+	}
+
+	if err := bootstrap.AutoMigrate(db); err != nil {
+		zapLogger.Fatal("auto migrate failed", zap.Error(err))
+	}
+
+	var publisher mq.Publisher
+	if mqClient != nil {
+		publisher = mqClient.Publisher
+	}
+	app := bootstrap.BuildApp(cfg, db, redisClient, publisher)
+	runCtx, runCancel := context.WithCancel(context.Background())
+	defer runCancel()
+	app.StartBackgroundWorkers(runCtx, mqClient, zapLogger)
+
+	r := bootstrap.InitRouter(cfg.Server, zapLogger, app)
 
 	srv := &http.Server{
 		Addr:    cfg.Server.Addr,
@@ -65,6 +88,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	runCancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

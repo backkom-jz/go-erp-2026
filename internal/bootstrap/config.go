@@ -14,6 +14,7 @@ type Config struct {
 	DB     DBConfig     `mapstructure:"db"`
 	Redis  RedisConfig  `mapstructure:"redis"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
+	MQ     MQConfig     `mapstructure:"mq"`
 }
 
 type ServerConfig struct {
@@ -48,6 +49,16 @@ type JWTConfig struct {
 	RefreshTTLMinutes int    `mapstructure:"refresh_ttl_minutes"`
 }
 
+type MQConfig struct {
+	Enabled             bool   `mapstructure:"enabled"`
+	URL                 string `mapstructure:"url"`
+	Exchange            string `mapstructure:"exchange"`
+	RoutingKey          string `mapstructure:"routing_key"`
+	OrderTimeoutMinutes int    `mapstructure:"order_timeout_minutes"`
+	OutboxMaxRetry      int    `mapstructure:"outbox_max_retry"`
+	OutboxBaseDelaySeconds int `mapstructure:"outbox_base_delay_seconds"`
+}
+
 func LoadConfig() (*Config, error) {
 	env := strings.TrimSpace(os.Getenv("APP_ENV"))
 	if env == "" {
@@ -71,6 +82,24 @@ func LoadConfig() (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config failed: %w", err)
+	}
+	if strings.TrimSpace(cfg.JWT.Secret) == "" {
+		return nil, fmt.Errorf("jwt.secret must not be empty")
+	}
+	if cfg.MQ.Exchange == "" {
+		cfg.MQ.Exchange = "erp.events"
+	}
+	if cfg.MQ.RoutingKey == "" {
+		cfg.MQ.RoutingKey = "erp.default"
+	}
+	if cfg.MQ.OrderTimeoutMinutes <= 0 {
+		cfg.MQ.OrderTimeoutMinutes = 30
+	}
+	if cfg.MQ.OutboxMaxRetry <= 0 {
+		cfg.MQ.OutboxMaxRetry = 6
+	}
+	if cfg.MQ.OutboxBaseDelaySeconds <= 0 {
+		cfg.MQ.OutboxBaseDelaySeconds = 3
 	}
 	return &cfg, nil
 }
