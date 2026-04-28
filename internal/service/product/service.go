@@ -12,10 +12,12 @@ type Service struct {
 	repo productrepo.Repository
 }
 
+// NewService 创建商品服务。
 func NewService(repo productrepo.Repository) *Service {
 	return &Service{repo: repo}
 }
 
+// CreateSPU 创建 SPU。
 func (s *Service) CreateSPU(ctx context.Context, req dtoproduct.CreateSPURequest) (*product.SPU, error) {
 	row := &product.SPU{
 		Name:       req.Name,
@@ -28,10 +30,12 @@ func (s *Service) CreateSPU(ctx context.Context, req dtoproduct.CreateSPURequest
 	return row, nil
 }
 
+// ListSPU 查询 SPU 列表。
 func (s *Service) ListSPU(ctx context.Context, limit int) ([]product.SPU, error) {
 	return s.repo.ListSPU(ctx, limit)
 }
 
+// CreateSKU 创建 SKU。
 func (s *Service) CreateSKU(ctx context.Context, req dtoproduct.CreateSKURequest) (*product.SKU, error) {
 	row := &product.SKU{
 		SPUID:      req.SPUID,

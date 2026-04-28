@@ -13,14 +13,19 @@ type Handler struct {
 	service *paymentsvc.Service
 }
 
+// NewHandler 创建支付模块处理器。
 func NewHandler(service *paymentsvc.Service) *Handler {
 	return &Handler{service: service}
 }
 
+// Register 注册支付接口。
+// 接口备注：
+// - POST /api/v1/payments/callback 支付回调
 func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.POST("/payments/callback", h.Callback)
 }
 
+// Callback 支付回调接口。
 func (h *Handler) Callback(c *gin.Context) {
 	var req dtopayment.CallbackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

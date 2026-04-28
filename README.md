@@ -21,12 +21,29 @@
 - 库存 Lua 原子扣减（防超卖）
 - Outbox 事件派发（DB 事务与 MQ 发布最终一致）
 - 订单超时取消延迟队列闭环（TTL + DLX + 消费取消）
+- AI 对话接口与后台页面（后端代理 DeepSeekV4-pro）
 
 ## 快速启动
 ```bash
 export APP_ENV=dev
 go run ./cmd/server
 ```
+
+## 启动后台管理页面
+
+```bash
+# 安装前端依赖
+npm --prefix "./web" install
+
+# 启动前端开发服务（默认 http://127.0.0.1:5173）
+npm --prefix "./web" run dev
+```
+
+说明：
+- 前端工程位于 `web/`，技术栈为 Vue3 + Vite + Element Plus。
+- 路由模式为 `Vue Router Hash`（`#/...`）。
+- Axios 全局开启 `withCredentials`，用于会话场景（同时保留 Bearer token 头）。
+- 已配置 `/api` 代理到 `http://127.0.0.1:8080`，请先启动后端服务。
 
 ## 核心目录
 ```text
@@ -63,3 +80,23 @@ docs/                             # 架构与设计文档
   - `mq.order_timeout_minutes`：订单超时取消延迟分钟数
   - `mq.outbox_max_retry`：Outbox 最大重试次数
   - `mq.outbox_base_delay_seconds`：Outbox 指数退避基础秒数
+  - `ai.enabled`：是否启用 AI 对话能力
+  - `ai.api_key`：DeepSeek API Key（建议走环境变量覆盖）
+
+## AI 对话配置（DeepSeekV4-pro）
+
+在 `configs/config.dev.yaml` 中启用：
+
+```yaml
+ai:
+  enabled: true
+  base_url: "https://api.deepseek.com/chat/completions"
+  api_key: "your_deepseek_api_key"
+  model: "DeepSeekV4-pro"
+  timeout_seconds: 60
+  temperature: 0.7
+  max_tokens: 1024
+```
+
+接口：
+- `POST /api/v1/ai/chat`

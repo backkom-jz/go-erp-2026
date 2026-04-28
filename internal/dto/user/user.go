@@ -5,4 +5,5 @@ type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 	TenantID string `json:"tenant_id" binding:"required"`
 	Role     string `json:"role"`
+	Password string `json:"password"`
 }

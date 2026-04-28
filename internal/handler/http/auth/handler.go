@@ -13,14 +13,19 @@ type Handler struct {
 	service *authsvc.Service
 }
 
+// NewHandler 创建认证模块处理器。
 func NewHandler(service *authsvc.Service) *Handler {
 	return &Handler{service: service}
 }
 
+// Register 注册认证接口。
+// 接口备注：
+// - POST /api/v1/auth/login 登录并返回 access/refresh token。
 func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.POST("/auth/login", h.Login)
 }
 
+// Login 登录接口。
 func (h *Handler) Login(c *gin.Context) {
 	var req dtoauth.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

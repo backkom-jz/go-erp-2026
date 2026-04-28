@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	aihandler "go-erp/internal/handler/http/ai"
 	authhandler "go-erp/internal/handler/http/auth"
 	inventoryhandler "go-erp/internal/handler/http/inventory"
 	orderhandler "go-erp/internal/handler/http/order"
@@ -19,6 +20,7 @@ import (
 	paymentsvc "go-erp/internal/service/payment"
 	productsvc "go-erp/internal/service/product"
 	usersvc "go-erp/internal/service/user"
+	aisvc "go-erp/internal/service/ai"
 	"go-erp/pkg/auth/jwt"
 	"go-erp/pkg/idempotency"
 	"go-erp/pkg/mq"
@@ -30,6 +32,7 @@ import (
 )
 
 type App struct {
+	AIHandler        *aihandler.Handler
 	AuthHandler      *authhandler.Handler
 	UserHandler      *userhandler.Handler
 	ProductHandler   *producthandler.Handler
@@ -57,6 +60,15 @@ func BuildApp(cfg *Config, db *gorm.DB, redisClient *redis.Client, publisher mq.
 	paymentRepository := paymentrepo.NewRepository(db)
 
 	userService := usersvc.NewService(userRepository)
+	aiService := aisvc.NewService(aisvc.Config{
+		Enabled:        cfg.AI.Enabled,
+		BaseURL:        cfg.AI.BaseURL,
+		APIKey:         cfg.AI.APIKey,
+		Model:          cfg.AI.Model,
+		TimeoutSeconds: cfg.AI.TimeoutSeconds,
+		Temperature:    cfg.AI.Temperature,
+		MaxTokens:      cfg.AI.MaxTokens,
+	})
 	authService := authsvc.NewService(userRepository, jwtManager)
 	productService := productsvc.NewService(productRepository)
 	inventoryService := inventorysvc.NewService(db, inventoryRepository, redisClient)
@@ -71,6 +83,7 @@ func BuildApp(cfg *Config, db *gorm.DB, redisClient *redis.Client, publisher mq.
 	)
 
 	return &App{
+		AIHandler:        aihandler.NewHandler(aiService),
 		AuthHandler:      authhandler.NewHandler(authService),
 		UserHandler:      userhandler.NewHandler(userService),
 		ProductHandler:   producthandler.NewHandler(productService),

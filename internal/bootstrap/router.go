@@ -23,6 +23,7 @@ func InitRouter(cfg ServerConfig, logger *zap.Logger, app *App) *gin.Engine {
 	r.Use(middleware.Idempotency(app.IdempotencyStore, 5*time.Minute))
 
 	api.RegisterRoutes(r, api.RouteModules{
+		AI:        app.AIHandler,
 		Auth:      app.AuthHandler,
 		User:      app.UserHandler,
 		Product:   app.ProductHandler,

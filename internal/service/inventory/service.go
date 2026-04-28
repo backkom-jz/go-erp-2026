@@ -33,16 +33,20 @@ type Service struct {
 	rdb  *redis.Client
 }
 
+// NewService 创建库存服务。
 func NewService(db *gorm.DB, repo inventoryrepo.Repository, rdb *redis.Client) *Service {
 	return &Service{db: db, repo: repo, rdb: rdb}
 }
 
+// Deduct 扣减库存（自动开启事务）。
 func (s *Service) Deduct(ctx context.Context, req dtoinventory.DeductRequest) error {
 	return dbtx.WithTransaction(ctx, s.db, func(tx *gorm.DB) error {
 		return s.DeductWithTx(ctx, tx, req)
 	})
 }
 
+// DeductWithTx 在给定事务中扣减库存。
+// 备注：先走 Redis Lua 原子预扣，再落库，失败会尝试回补 Redis。
 func (s *Service) DeductWithTx(ctx context.Context, tx *gorm.DB, req dtoinventory.DeductRequest) error {
 	cacheKey := "stock:sku:" + strconv.FormatUint(uint64(req.SKUID), 10)
 	if s.rdb != nil {
@@ -86,6 +90,7 @@ func (s *Service) DeductWithTx(ctx context.Context, tx *gorm.DB, req dtoinventor
 	return errs.Wrap(errs.CodeInternal, "db_deduct_failed", deductErr)
 }
 
+// InitStock 初始化或更新 SKU 库存。
 func (s *Service) InitStock(ctx context.Context, skuID uint, qty int64) error {
 	row := &domaininventory.Inventory{
 		SKUID: skuID,

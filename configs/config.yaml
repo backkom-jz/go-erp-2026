@@ -28,3 +28,11 @@ mq:
   order_timeout_minutes: 30
   outbox_max_retry: 6
   outbox_base_delay_seconds: 3
+ai:
+  enabled: false
+  base_url: "https://api.deepseek.com/chat/completions"
+  api_key: ""
+  model: "deepseek-chat"
+  timeout_seconds: 60
+  temperature: 0.7
+  max_tokens: 1024

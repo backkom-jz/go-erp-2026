@@ -7,7 +7,8 @@ log:
   output: ["stdout"]
 db:
   driver: "mysql"
-  dsn: "root:root@tcp(127.0.0.1:3306)/go_erp_dev?charset=utf8mb4&parseTime=True&loc=Local"
+  # dsn: "mysql://JKT:Jkt@wjz123@rm-uf6x3v7s7pnkyh892ho.mysql.rds.aliyuncs.com:3306/gin_tools?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "JKT:Jkt@wjz123@tcp(rm-uf6x3v7s7pnkyh892ho.mysql.rds.aliyuncs.com:3306)/gin_tools?charset=utf8mb4&parseTime=true&loc=Local"
   max_idle_conns: 10
   max_open_conns: 50
   conn_max_lifetime_seconds: 3600
@@ -28,3 +29,11 @@ mq:
   order_timeout_minutes: 30
   outbox_max_retry: 6
   outbox_base_delay_seconds: 3
+ai:
+  enabled: true
+  base_url: "https://api.deepseek.com/chat/completions"
+  api_key: "sk-54a42da730614832bef6ef0003083f53"
+  model: "deepseek-chat"
+  timeout_seconds: 60
+  temperature: 0.7
+  max_tokens: 1024

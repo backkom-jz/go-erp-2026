@@ -5,7 +5,8 @@ import "time"
 type User struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserNo    string    `gorm:"size:64;uniqueIndex" json:"user_no"`
-	Name      string    `gorm:"size:128" json:"name"`
+	Name      string    `gorm:"column:username;size:128" json:"name"`
+	Password  string    `gorm:"column:password;size:255" json:"-"`
 	TenantID  string    `gorm:"size:64;index" json:"tenant_id"`
 	Role      string    `gorm:"size:32" json:"role"`
 	CreatedAt time.Time `json:"created_at"`

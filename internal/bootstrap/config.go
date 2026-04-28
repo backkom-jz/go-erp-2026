@@ -15,6 +15,7 @@ type Config struct {
 	Redis  RedisConfig  `mapstructure:"redis"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
 	MQ     MQConfig     `mapstructure:"mq"`
+	AI     AIConfig     `mapstructure:"ai"`
 }
 
 type ServerConfig struct {
@@ -59,6 +60,16 @@ type MQConfig struct {
 	OutboxBaseDelaySeconds int `mapstructure:"outbox_base_delay_seconds"`
 }
 
+type AIConfig struct {
+	Enabled        bool    `mapstructure:"enabled"`
+	BaseURL        string  `mapstructure:"base_url"`
+	APIKey         string  `mapstructure:"api_key"`
+	Model          string  `mapstructure:"model"`
+	TimeoutSeconds int     `mapstructure:"timeout_seconds"`
+	Temperature    float64 `mapstructure:"temperature"`
+	MaxTokens      int     `mapstructure:"max_tokens"`
+}
+
 func LoadConfig() (*Config, error) {
 	env := strings.TrimSpace(os.Getenv("APP_ENV"))
 	if env == "" {
@@ -100,6 +111,21 @@ func LoadConfig() (*Config, error) {
 	}
 	if cfg.MQ.OutboxBaseDelaySeconds <= 0 {
 		cfg.MQ.OutboxBaseDelaySeconds = 3
+	}
+	if strings.TrimSpace(cfg.AI.BaseURL) == "" {
+		cfg.AI.BaseURL = "https://api.deepseek.com/chat/completions"
+	}
+	if strings.TrimSpace(cfg.AI.Model) == "" {
+		cfg.AI.Model = "DeepSeekV4-pro"
+	}
+	if cfg.AI.TimeoutSeconds <= 0 {
+		cfg.AI.TimeoutSeconds = 60
+	}
+	if cfg.AI.Temperature <= 0 {
+		cfg.AI.Temperature = 0.7
+	}
+	if cfg.AI.MaxTokens <= 0 {
+		cfg.AI.MaxTokens = 1024
 	}
 	return &cfg, nil
 }

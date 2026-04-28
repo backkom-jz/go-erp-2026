@@ -27,6 +27,7 @@ type Service struct {
 	inventory *inventorysvc.Service
 }
 
+// NewService 创建订单服务。
 func NewService(
 	db *gorm.DB,
 	repo orderrepo.Repository,
@@ -41,6 +42,8 @@ func NewService(
 	}
 }
 
+// Create 创建订单。
+// 备注：订单创建与库存扣减、Outbox 写入在同一事务内完成。
 func (s *Service) Create(ctx context.Context, req dtoorder.CreateOrderRequest) (*domainorder.Order, error) {
 	orderNo := uuid.NewString()
 	items := make([]domainorder.OrderItem, 0, len(req.Items))
@@ -107,6 +110,7 @@ func (s *Service) Create(ctx context.Context, req dtoorder.CreateOrderRequest) (
 	return header, nil
 }
 
+// GetByID 查询订单详情。
 func (s *Service) GetByID(ctx context.Context, id uint) (*domainorder.Order, []domainorder.OrderItem, error) {
 	header, items, err := s.repo.GetByID(ctx, id)
 	if err != nil {
@@ -115,16 +119,19 @@ func (s *Service) GetByID(ctx context.Context, id uint) (*domainorder.Order, []d
 	return header, items, nil
 }
 
+// MarkPaid 将订单标记为已支付。
 func (s *Service) MarkPaid(ctx context.Context, orderNo string) error {
 	_, err := s.repo.MarkPaidPreferPaid(ctx, orderNo)
 	return err
 }
 
+// CancelIfTimeout 超时取消订单（仅 pending 状态可取消）。
 func (s *Service) CancelIfTimeout(ctx context.Context, orderNo string) error {
 	_, err := s.repo.CancelIfPending(ctx, orderNo)
 	return err
 }
 
+// HandleTimeoutMessage 处理订单超时消息。
 func (s *Service) HandleTimeoutMessage(ctx context.Context, payload []byte) error {
 	var msg TimeoutPayload
 	if err := json.Unmarshal(payload, &msg); err != nil {
@@ -146,6 +153,7 @@ type OutboxDispatcher struct {
 	baseBackoff time.Duration
 }
 
+// NewOutboxDispatcher 创建 Outbox 派发器。
 func NewOutboxDispatcher(
 	repo orderrepo.OutboxRepository,
 	publisher interface {
@@ -173,6 +181,7 @@ func NewOutboxDispatcher(
 	}
 }
 
+// Run 启动 Outbox 派发轮询。
 func (d *OutboxDispatcher) Run(ctx context.Context) {
 	if d.publisher == nil || d.repo == nil {
 		return

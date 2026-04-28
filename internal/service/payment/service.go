@@ -18,6 +18,7 @@ type Service struct {
 	idemStore *idempotency.Store
 }
 
+// NewService 创建支付服务。
 func NewService(repo paymentrepo.Repository, orders *orderService.Service, idemStore *idempotency.Store) *Service {
 	return &Service{
 		repo:      repo,
@@ -26,6 +27,8 @@ func NewService(repo paymentrepo.Repository, orders *orderService.Service, idemS
 	}
 }
 
+// Callback 处理支付回调。
+// 备注：包含幂等校验与订单状态更新。
 func (s *Service) Callback(ctx context.Context, req dtopayment.CallbackRequest) error {
 	if s.idemStore != nil {
 		if err := s.idemStore.Reserve(ctx, "pay:"+req.PaymentNo, 10*time.Minute); err != nil {

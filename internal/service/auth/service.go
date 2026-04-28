@@ -14,6 +14,9 @@ type Service struct {
 	jwt   *jwt.Manager
 }
 
+const defaultInitPassword = "dev_init_password"
+
+// NewService 创建认证服务。
 func NewService(users userrepo.Repository, jwtManager *jwt.Manager) *Service {
 	return &Service{
 		users: users,
@@ -21,6 +24,8 @@ func NewService(users userrepo.Repository, jwtManager *jwt.Manager) *Service {
 	}
 }
 
+// Login 处理登录逻辑。
+// 备注：若用户不存在会自动初始化一个默认用户。
 func (s *Service) Login(ctx context.Context, userNo, tenantID, role string) (string, string, error) {
 	u, err := s.users.GetByUserNo(ctx, userNo)
 	if err != nil {
@@ -30,6 +35,7 @@ func (s *Service) Login(ctx context.Context, userNo, tenantID, role string) (str
 		newUser := &domainuser.User{
 			UserNo:   userNo,
 			Name:     userNo,
+			Password: defaultInitPassword,
 			TenantID: tenantID,
 			Role:     role,
 		}
@@ -50,12 +56,17 @@ func (s *Service) Login(ctx context.Context, userNo, tenantID, role string) (str
 	return accessToken, refreshToken, nil
 }
 
+// Register 注册用户（用于管理端调用）。
 func (s *Service) Register(ctx context.Context, req dtouser.CreateUserRequest) error {
 	entity := &domainuser.User{
 		UserNo:   req.UserNo,
 		Name:     req.Name,
+		Password: req.Password,
 		TenantID: req.TenantID,
 		Role:     req.Role,
+	}
+	if entity.Password == "" {
+		entity.Password = defaultInitPassword
 	}
 	return s.users.Create(ctx, entity)
 }
